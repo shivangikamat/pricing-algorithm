@@ -153,3 +153,24 @@ feature_df.to_csv(feature_df_path)
 print(f"✅ Saved feature_df to {feature_df_path}")
 print(f"   Shape: {feature_df.shape}")
 print(f"   Features: {list(feature_df.columns)}")
+
+# Save raw historical data for 3-day price capping
+raw_history_path = "../data/raw/price_history.csv"
+df.to_csv(raw_history_path, index=False)
+print(f"✅ Saved raw historical data to {raw_history_path}")
+
+# Calculate 3-day minimum price for each skin
+# Sort by date and get the last 3 days of data per skin
+df_sorted = df.sort_values(['market_hash_name', 'date'])
+
+# Group by skin and get the last 3 days
+min_price_3day = df_sorted.groupby('market_hash_name').tail(3).groupby('market_hash_name')['price_usd'].min()
+min_price_3day.name = 'min_price_3day'
+
+# Add to feature_df
+feature_df = feature_df.join(min_price_3day)
+feature_df['min_price_3day'] = feature_df['min_price_3day'].fillna(feature_df['mean_price_usd'])
+
+# Save updated feature_df with 3-day minimum
+feature_df.to_csv(feature_df_path)
+print(f"✅ Updated feature_df with 3-day minimum prices")

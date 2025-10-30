@@ -13,6 +13,20 @@ DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 svm_model = joblib.load(os.path.join(MODEL_DIR, "SVM_models", "svm_best_model.pkl"))
 svm_scaler = joblib.load(os.path.join(MODEL_DIR, "SVM_models", "svm_scaler.pkl"))
 
+# Try to load ML-based safe price regression model
+regressor_path_rf = os.path.join(MODEL_DIR, "SVM_models", "safe_price_regressor_RF.pkl")
+regressor_path_svr = os.path.join(MODEL_DIR, "SVM_models", "safe_price_regressor_SVR.pkl")
+
+if os.path.exists(regressor_path_rf):
+    safe_price_regressor = joblib.load(regressor_path_rf)
+    print("✅ Loaded ML-based safe price regressor (Random Forest)")
+elif os.path.exists(regressor_path_svr):
+    safe_price_regressor = joblib.load(regressor_path_svr)
+    print("✅ Loaded ML-based safe price regressor (SVR)")
+else:
+    safe_price_regressor = None
+    print("⚠️  No ML regressor found, will use formula-based prices")
+
 # Load feature database (try skin_database.csv first, fallback to feature_df.csv)
 DATABASE_PATH = os.path.join(DATA_DIR, "skin_database.csv")
 FEATURE_DF_PATH = os.path.join(DATA_DIR, "feature_df.csv")
@@ -67,11 +81,21 @@ def get_skin_stats():
     # Get skin features
     skin_features = feature_df.loc[skin_name]
     
-    # Check if we have precomputed predictions
-    if 'risk_score_SVM' in feature_df.columns and 'safe_price_usd_SVM' in feature_df.columns:
-        # Use precomputed predictions from database
+    # Check if we have precomputed predictions in database
+    if 'risk_score_SVM' in feature_df.columns:
+        # Use precomputed risk score
         risk_pred = int(skin_features['risk_score_SVM'])
-        safe_price = round(skin_features['safe_price_usd_SVM'], 2)
+        
+        # Prefer ML-based safe price if available, otherwise use formula-based
+        if 'safe_price_usd_ML' in feature_df.columns:
+            safe_price = round(skin_features['safe_price_usd_ML'], 2)
+        elif 'safe_price_usd_SVM' in feature_df.columns:
+            safe_price = round(skin_features['safe_price_usd_SVM'], 2)
+        else:
+            # Calculate formula-based safe price
+            alpha = 0.25
+            mean_price = skin_features['mean_price_usd']
+            safe_price = round(mean_price * (1 - alpha * risk_pred), 2)
     else:
         # Calculate predictions on the fly
         X = pd.DataFrame({
@@ -89,11 +113,28 @@ def get_skin_stats():
         
         # Predict risk
         risk_pred = int(svm_model.predict(X_scaled)[0])
-        alpha = 0.25
         
-        # Calculate safe price
-        mean_price = skin_features['mean_price_usd']
-        safe_price = round(mean_price * (1 - alpha * risk_pred), 2)
+        # Use ML regressor if available, otherwise fallback to formula
+        if safe_price_regressor is not None:
+            safe_price_ml = safe_price_regressor.predict(X_scaled)[0]
+            mean_price = skin_features['mean_price_usd']
+            safe_price = np.clip(safe_price_ml, mean_price * 0.5, mean_price * 1.0)
+            
+            # Apply 3-day price cap if available
+            if 'min_price_3day' in skin_features.index:
+                safe_price = min(safe_price, skin_features['min_price_3day'])
+            
+            safe_price = round(safe_price, 2)
+        else:
+            alpha = 0.25
+            mean_price = skin_features['mean_price_usd']
+            safe_price = mean_price * (1 - alpha * risk_pred)
+            
+            # Apply 3-day price cap if available
+            if 'min_price_3day' in skin_features.index:
+                safe_price = min(safe_price, skin_features['min_price_3day'])
+            
+            safe_price = round(safe_price, 2)
     
     # Calculate discount
     mean_price = skin_features['mean_price_usd']
