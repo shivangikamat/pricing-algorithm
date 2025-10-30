@@ -27,10 +27,11 @@ API_KEY=your_price_empire_api_key_here
 
 ### 3. Run the Pipeline
 
-**Option A: Automated Script**
-```bash
-./rerun_pipeline.sh
-```
+**Option A: Automated Script (Cross-platform)**
+
+- **Windows**: Double-click `rerun_pipeline.bat` or run in Command Prompt
+- **macOS/Linux**: `./rerun_pipeline.sh` or `python rerun_pipeline.py`
+- **Any OS**: `python rerun_pipeline.py` (works everywhere!)
 
 **Option B: Manual Steps**
 ```bash
@@ -183,6 +184,29 @@ The `price_history.csv` is gitignored. Don't commit it.
 
 ### "Flask shows old data"
 Restart the Flask app after running the pipeline.
+
+### Windows-specific issues
+
+**"Permission denied" when running `.sh` file**
+- Use `rerun_pipeline.bat` instead (Windows batch file)
+- Or use `python rerun_pipeline.py` (cross-platform Python script)
+
+**"python is not recognized"**
+- Install Python 3.8+ from [python.org](https://www.python.org/)
+- Or use `py rerun_pipeline.py` instead
+
+**Path issues with backslashes**
+- Use forward slashes `/` or escaped backslashes `\\` in paths
+- The Python script handles this automatically
+
+## Platform-Specific Notes
+
+| Platform | Best Method | Script |
+|----------|-------------|--------|
+| Windows | `.bat` or Python | `rerun_pipeline.bat` or `rerun_pipeline.py` |
+| macOS | Shell or Python | `rerun_pipeline.sh` or `rerun_pipeline.py` |
+| Linux | Shell or Python | `rerun_pipeline.sh` or `rerun_pipeline.py` |
+| **Any** | Python | `rerun_pipeline.py` ✅ |
 
 ## License
 
