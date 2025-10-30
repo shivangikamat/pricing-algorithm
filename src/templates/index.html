@@ -8,12 +8,33 @@
 <body class="bg-dark text-light">
   <div class="container mt-5">
     <h1 class="text-center mb-4">🎯 CS2:GO Skin Safe Price Estimator</h1>
-    <form action="/predict" method="POST" enctype="multipart/form-data" class="text-center">
-      <div class="mb-3">
-        <input type="file" name="file" class="form-control w-50 mx-auto" required>
+    
+    <div class="row">
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <h3 class="card-title mb-3">📄 Batch Upload</h3>
+            <p class="text-muted mb-4">Upload a CSV file to analyze multiple skins at once</p>
+            <form action="/predict" method="POST" enctype="multipart/form-data">
+              <div class="mb-3">
+                <input type="file" name="file" class="form-control" required>
+              </div>
+              <button type="submit" class="btn btn-success w-100">Upload & Calculate Safe Prices</button>
+            </form>
+          </div>
+        </div>
       </div>
-      <button type="submit" class="btn btn-success">Upload & Calculate Safe Prices</button>
-    </form>
+      
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-body text-center">
+            <h3 class="card-title mb-3">🔍 Query Single Skin</h3>
+            <p class="text-muted mb-4">Search and analyze individual skins in our database</p>
+            <a href="/query" class="btn btn-primary w-100">Query Skin Database</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 </html>

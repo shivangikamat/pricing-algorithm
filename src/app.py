@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
 import joblib
@@ -7,22 +7,113 @@ import os
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "..", "python_models", "models")
+DATA_DIR = os.path.join(BASE_DIR, "..", "data")
 
 # Load trained models
-# lda_model = joblib.load(os.path.join(MODEL_DIR, "LDA_model.pkl"))
-# lda_scaler = joblib.load(os.path.join(MODEL_DIR, "LDA_scaler.pkl"))
-
-# rf_model = joblib.load(os.path.join(MODEL_DIR, "RF_models", "random_forest.pkl"))
-# svm_model = joblib.load(os.path.join(MODEL_DIR, "SVM_models", "SVM_best_model.pkl"))
-# bgmm_model = joblib.load(os.path.join(MODEL_DIR, "BGMM_model", "bgmm_model.pkl"))
-# bgmm_scaler = joblib.load(os.path.join(MODEL_DIR, "BGMM_model", "scaler.pkl"))
-
 svm_model = joblib.load(os.path.join(MODEL_DIR, "SVM_models", "svm_best_model.pkl"))
 svm_scaler = joblib.load(os.path.join(MODEL_DIR, "SVM_models", "svm_scaler.pkl"))
+
+# Load feature database (try skin_database.csv first, fallback to feature_df.csv)
+DATABASE_PATH = os.path.join(DATA_DIR, "skin_database.csv")
+FEATURE_DF_PATH = os.path.join(DATA_DIR, "feature_df.csv")
+
+if os.path.exists(DATABASE_PATH):
+    feature_df = pd.read_csv(DATABASE_PATH, index_col=0)
+    print(f"✅ Loaded enhanced database with predictions from {DATABASE_PATH}")
+else:
+    feature_df = pd.read_csv(FEATURE_DF_PATH, index_col=0)
+    print(f"⚠️  Using basic feature database from {FEATURE_DF_PATH}")
+    print("   Run SVM_Model.ipynb to generate enhanced database with predictions")
 
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/query')
+def query_skin():
+    return render_template('query.html')
+
+@app.route('/api/search_skins', methods=['POST'])
+def search_skins():
+    """API endpoint to search for skins by name"""
+    data = request.get_json()
+    query = data.get('query', '').strip()
+    
+    # If no query provided, return random skins
+    if not query:
+        # Return first 100 skins for random selection
+        results = feature_df.head(100).index.tolist()
+    else:
+        # Search for matching skins (case-insensitive, partial match)
+        matching_skins = feature_df[feature_df.index.str.contains(query, case=False, na=False)]
+        # Return up to 50 results
+        results = matching_skins.head(50).index.tolist()
+    
+    return jsonify({'results': results})
+
+@app.route('/api/get_skin_stats', methods=['POST'])
+def get_skin_stats():
+    """API endpoint to get statistics and predictions for a specific skin"""
+    data = request.get_json()
+    skin_name = data.get('skin_name', '').strip()
+    
+    if not skin_name:
+        return jsonify({'error': 'Skin name is required'}), 400
+    
+    # Check if skin exists
+    if skin_name not in feature_df.index:
+        return jsonify({'error': 'Skin not found in database'}), 404
+    
+    # Get skin features
+    skin_features = feature_df.loc[skin_name]
+    
+    # Check if we have precomputed predictions
+    if 'risk_score_SVM' in feature_df.columns and 'safe_price_usd_SVM' in feature_df.columns:
+        # Use precomputed predictions from database
+        risk_pred = int(skin_features['risk_score_SVM'])
+        safe_price = round(skin_features['safe_price_usd_SVM'], 2)
+    else:
+        # Calculate predictions on the fly
+        X = pd.DataFrame({
+            'mean_price_usd': [skin_features['mean_price_usd']],
+            'mean_pct_change': [skin_features['mean_pct_change']],
+            'volatility': [skin_features['volatility']],
+            'mean_deviation': [skin_features['mean_deviation']],
+            'spike_count': [skin_features['spike_count']]
+        })
+        
+        # Clean and scale
+        X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
+        X = np.clip(X, -1e6, 1e6)
+        X_scaled = svm_scaler.transform(X)
+        
+        # Predict risk
+        risk_pred = int(svm_model.predict(X_scaled)[0])
+        alpha = 0.25
+        
+        # Calculate safe price
+        mean_price = skin_features['mean_price_usd']
+        safe_price = round(mean_price * (1 - alpha * risk_pred), 2)
+    
+    # Calculate discount
+    mean_price = skin_features['mean_price_usd']
+    discount = round(100 * (1 - safe_price / mean_price), 2) if mean_price > 0 else 0
+    
+    # Prepare response
+    stats = {
+        'skin_name': skin_name,
+        'mean_price_usd': round(mean_price, 2),
+        'mean_pct_change': round(skin_features['mean_pct_change'], 4),
+        'volatility': round(skin_features['volatility'], 4),
+        'mean_deviation': round(skin_features['mean_deviation'], 4),
+        'spike_count': int(skin_features['spike_count']),
+        'risk_score': risk_pred,
+        'risk_status': 'Risky' if risk_pred == 1 else 'Safe',
+        'safe_price_usd': safe_price,
+        'discount_pct': discount
+    }
+    
+    return jsonify(stats)
 
 @app.route('/predict', methods=['POST'])
 def predict_safe_price():
