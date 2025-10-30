@@ -195,6 +195,7 @@
     // Get statistics for a specific skin
     async function getSkinStats(skinName) {
       try {
+        // Get single model stats
         const response = await fetch('/api/get_skin_stats', {
           method: 'POST',
           headers: {
@@ -208,6 +209,24 @@
         if (stats.error) {
           alert(stats.error);
           return;
+        }
+
+        // Get all models comparison
+        try {
+          const allModelsResponse = await fetch('/api/get_all_models', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ skin_name: skinName })
+          });
+          
+          const allModels = await allModelsResponse.json();
+          if (!allModels.error) {
+            stats.all_models = allModels;
+          }
+        } catch (e) {
+          console.log('Model comparison not available');
         }
 
         displayStats(stats);
@@ -287,6 +306,35 @@
             </small>
           </div>
         </div>
+        ${stats.all_models && stats.all_models.models ? `
+        <div class="card shadow-sm mt-3">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">🤖 Model Comparison</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Safe Price</th>
+                    <th>Discount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.entries(stats.all_models.models).map(([model, data]) => `
+                    <tr>
+                      <td><strong>${model}</strong></td>
+                      <td>$${data.safe_price_usd}</td>
+                      <td>${data.discount_pct}%</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        ` : ''}
       `;
     }
 

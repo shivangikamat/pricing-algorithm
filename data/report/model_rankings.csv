@@ -1,0 +1,6 @@
+Model,Composite_Score,Avg Discount (%),CV (%),Discount Applied Rate (%),Risk Separation
+BGMM,53.233687115280055,0.93,97.06,75.13,24.07
+Logistic Regression,47.82438354902598,4.91,164.41,100.0,21.17
+SVM,27.147570749436284,4.68,1108.11,57.01,16.95
+LDA,15.978137081971077,-6.83,-533.89,41.95,-40.4
+Random Forest,,31.44,97.79,93.6,

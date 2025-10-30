@@ -39,6 +39,15 @@ else:
     print(f"⚠️  Using basic feature database from {FEATURE_DF_PATH}")
     print("   Run SVM_Model.ipynb to generate enhanced database with predictions")
 
+# Load unified model comparison if available
+MODELS_COMPARISON_PATH = os.path.join(DATA_DIR, "report", "all_models_comparison.csv")
+if os.path.exists(MODELS_COMPARISON_PATH):
+    models_comparison_df = pd.read_csv(MODELS_COMPARISON_PATH, index_col=0)
+    print(f"✅ Loaded unified model comparison from {MODELS_COMPARISON_PATH}")
+else:
+    models_comparison_df = None
+    print("⚠️  Model comparison not found. Run compare_all_models.py to generate")
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -155,6 +164,43 @@ def get_skin_stats():
     }
     
     return jsonify(stats)
+
+@app.route('/api/get_all_models', methods=['POST'])
+def get_all_models():
+    """API endpoint to get predictions from all models for a specific skin"""
+    data = request.get_json()
+    skin_name = data.get('skin_name', '').strip()
+    
+    if not skin_name:
+        return jsonify({'error': 'Skin name is required'}), 400
+    
+    if models_comparison_df is None or skin_name not in models_comparison_df.index:
+        return jsonify({'error': 'Model comparison data not available for this skin'}), 404
+    
+    skin_comparison = models_comparison_df.loc[skin_name]
+    
+    # Build response with all model predictions
+    response = {
+        'skin_name': skin_name,
+        'mean_price_usd': round(skin_comparison.get('mean_price_usd', 0), 2),
+        'models': {}
+    }
+    
+    # Get all safe price columns
+    safe_price_cols = [col for col in skin_comparison.index if col.startswith('safe_price_')]
+    
+    for col in safe_price_cols:
+        model_name = col.replace('safe_price_', '')
+        safe_price = round(skin_comparison[col], 2)
+        mean_price = skin_comparison.get('mean_price_usd', 0)
+        discount = round(100 * (1 - safe_price / mean_price), 2) if mean_price > 0 else 0
+        
+        response['models'][model_name] = {
+            'safe_price_usd': safe_price,
+            'discount_pct': discount
+        }
+    
+    return jsonify(response)
 
 @app.route('/predict', methods=['POST'])
 def predict_safe_price():

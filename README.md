@@ -5,10 +5,23 @@ A machine learning-powered system for predicting safe prices of CS2 skins with r
 ## Features
 
 - 🤖 **ML-Based Safe Price Prediction**: Random Forest regression (95.85% R² accuracy)
-- ⚠️ **Risk Classification**: SVM classifier (98.66% accuracy)  
+- ⚠️ **Risk Classification**: SVM classifier (98.66% accuracy)
 - 🔒 **3-Day Price Cap**: Safe prices never exceed last 3 days' minimum
 - 📊 **26,835+ Skins**: Comprehensive database with historical analysis
 - 🌐 **Web Interface**: Flask-based query system
+- 🎯 **Multi-Model Comparison**: Compare 5 different ML models side-by-side
+- 📈 **Performance Analytics**: Detailed model statistics and rankings
+
+## Model Performance Summary
+
+| Model | Avg Discount | Consistency | Best For |
+|-------|--------------|-------------|----------|
+| **Random Forest** ⭐ | 31.44% | 97.79% CV | Maximum protection |
+| **BGMM** ⭐⭐⭐⭐⭐ | 0.93% | 97.06% CV | Balanced risk assessment |
+| Logistic Regression | 4.91% | 164.41% CV | Baseline comparison |
+| SVM | 4.68% | 1108.11% CV | Classification only |
+
+**See `data/report/BEST_MODEL_ANALYSIS.md` for complete analysis**
 
 ## Quick Start
 
