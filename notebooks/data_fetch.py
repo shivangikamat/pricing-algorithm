@@ -35,8 +35,8 @@ def fetch_price_history():
         "app_id": 730,
         "provider_key": "buff163",
         "currency": "USD",
-        "from_date": "2025-08-01",
-        "to_date": "2025-10-29"
+        "from_date": (date.today() - timedelta(days=149)).strftime("%Y-%m-%d"), 
+        "to_date": date.today().strftime("%Y-%m-%d") 
     }
 
     response = requests.get(history_URL, headers=headers, params=params)

@@ -1,20 +1,193 @@
-# 🎯 SkinSafe Pricing — Detecting Manipulated Skins & Predicting Safe Prices
+# CS2 Skin Pricing Algorithm
 
-This project builds an **intelligent pricing system for game skins** (e.g. CS2 items), using market data from **Buff163** via the [Pricempire API](https://pricempire.com/).  
-It identifies **price manipulation patterns** and computes a **safe purchase price** for each skin using statistical analysis and multiple machine learning models.
+A machine learning-powered system for predicting safe prices of CS2 skins with risk assessment.
 
----
+## Features
 
-## 🚀 Project Overview
+- 🤖 **ML-Based Safe Price Prediction**: Random Forest regression (95.85% R² accuracy)
+- ⚠️ **Risk Classification**: SVM classifier (98.66% accuracy)  
+- 🔒 **3-Day Price Cap**: Safe prices never exceed last 3 days' minimum
+- 📊 **26,835+ Skins**: Comprehensive database with historical analysis
+- 🌐 **Web Interface**: Flask-based query system
 
-### 🧠 Problem
-Certain criminal organizations artificially inflate (“pump and dump”) skin prices, leading to huge losses when marketplaces correct.  
-Skins with suspicious price spikes or liquidity patterns must be detected and priced safely.
+## Quick Start
 
-### 🎯 Goal
-Build a model that:
-1. Detects **manipulated or volatile skins** using price data.
-2. Calculates a **“safe buy” price** to minimize loss risk.
-3. Compares multiple models (LDA, SVM, Random Forest, BGMM, etc.) for accuracy and reliability.
+### 1. Install Dependencies
 
----
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Set Up API Key
+
+Create a `.env` file in the root directory:
+```
+API_KEY=your_price_empire_api_key_here
+```
+
+### 3. Run the Pipeline
+
+**Option A: Automated Script**
+```bash
+./rerun_pipeline.sh
+```
+
+**Option B: Manual Steps**
+```bash
+# Step 1: Fetch data and extract features
+cd notebooks
+python data_fetch.py
+
+# Step 2: Generate database with ML models
+python generate_database.py
+
+# Step 3: Start Flask app
+cd ../src
+python app.py
+```
+
+### 4. Access Web Interface
+
+Open your browser to: `http://localhost:5000`
+
+## File Structure
+
+```
+pricing-algorithm/
+├── data/
+│   ├── feature_df.csv              # Aggregated skin features
+│   ├── skin_database.csv           # Complete database with predictions
+│   ├── raw/                        # Raw historical data (gitignored)
+│   └── report/                     # Analysis reports
+├── notebooks/
+│   ├── data_fetch.py               # Data fetching and preprocessing
+│   ├── generate_database.py        # ML model training
+│   ├── SVM_Model.ipynb             # SVM classification
+│   └── feature_engineering.ipynb   # Feature analysis
+├── src/
+│   ├── app.py                      # Flask web application
+│   └── templates/                  # HTML templates
+├── python_models/models/           # Trained ML models (gitignored)
+├── rerun_pipeline.sh               # Automated pipeline script
+└── PIPELINE_RERUN_GUIDE.md         # Detailed pipeline documentation
+```
+
+## Pipeline Overview
+
+```
+Data Fetching → Feature Engineering → ML Training → Web Interface
+```
+
+1. **data_fetch.py**: Fetches historical prices, calculates features, 3-day minimums
+2. **generate_database.py**: Trains SVM + Random Forest, applies constraints
+3. **app.py**: Flask web interface for querying skins
+
+## Making Changes
+
+### After Modifying `data_fetch.py`:
+
+Simply rerun the pipeline:
+```bash
+./rerun_pipeline.sh
+```
+
+This will:
+- ✅ Fetch new data
+- ✅ Recalculate features
+- ✅ Retrain ML models
+- ✅ Regenerate database
+- ✅ Show verification stats
+
+### Restart Flask App:
+```bash
+cd src
+python app.py
+```
+
+## Key Statistics
+
+- **Total Skins**: 26,835
+- **Risky Skins**: 3,748 (14.0%)
+- **Safe Skins**: 23,087 (86.0%)
+- **Average Discount**: 30.02%
+- **ML Model R²**: 95.85%
+- **SVM Accuracy**: 98.66%
+
+## Important Constraints
+
+### 3-Day Minimum Price Cap ⚠️
+
+**Critical**: Safe prices never exceed the minimum price in the last 3 days. This prevents overpricing during recent market drops.
+
+Example:
+- Skin: "Sticker | Clan-Mystik (Holo) | Katowice 2014"
+- Market price: $22,996
+- Formula safe price: $17,247 (25% discount)
+- **3-day minimum: $5,465**
+- **ML safe price: $5,465** ✅ (capped)
+
+## API Endpoints
+
+### Query Single Skin
+```bash
+POST /api/get_skin_stats
+Content-Type: application/json
+
+{
+  "skin_name": "AK-47 | Redline (Field-Tested)"
+}
+```
+
+### Search Skins
+```bash
+POST /api/search_skins
+Content-Type: application/json
+
+{
+  "query": "AK-47"
+}
+```
+
+## Dependencies
+
+- **Python 3.8+**
+- Flask (web framework)
+- scikit-learn (ML models)
+- pandas, numpy (data processing)
+- joblib (model persistence)
+- requests (API calls)
+
+## Documentation
+
+- **PIPELINE_RERUN_GUIDE.md**: Detailed pipeline documentation
+- **ML_SAFE_PRICE_SUMMARY.md**: ML approach explanation
+- Inline code comments
+
+## Notes
+
+- Historical data file (~212MB) is gitignored
+- Models are regenerated on each pipeline run
+- Flask app automatically reloads database on startup
+- API key required for `price-empire.com`
+
+## Troubleshooting
+
+### "API rate limit exceeded"
+Wait a few minutes before rerunning the pipeline.
+
+### "Model not found"
+Run `generate_database.py` to regenerate models.
+
+### "Git large file error"
+The `price_history.csv` is gitignored. Don't commit it.
+
+### "Flask shows old data"
+Restart the Flask app after running the pipeline.
+
+## License
+
+MIT
+
+## Contributors
+
+Created for CS2 skin pricing analysis and risk assessment.
