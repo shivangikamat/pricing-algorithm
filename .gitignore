@@ -1,3 +1,23 @@
 .env
 
 .DS_Stores
+
+# Large data files
+data/raw/price_history.csv
+*.csv.gz
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Model files (can be regenerated)
+# python_models/
+
+# # Generated reports
+# data/report/
