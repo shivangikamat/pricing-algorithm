@@ -119,22 +119,8 @@
   </div>
 
   <script>
-    let searchTimeout;
-
-    // Auto-search as user types
-    document.getElementById('skinSearch').addEventListener('input', function() {
-      clearTimeout(searchTimeout);
-      const query = this.value.trim();
-      
-      if (query.length >= 2) {
-        searchTimeout = setTimeout(() => searchSkin(false), 300);
-      } else {
-        document.getElementById('searchResults').style.display = 'none';
-      }
-    });
-
-    // Search for skins
-    async function searchSkin(showInput = true) {
+    // Search for skins (only called when Search button is clicked)
+    async function searchSkin() {
       const query = document.getElementById('skinSearch').value.trim();
       
       if (!query) {
@@ -153,16 +139,18 @@
 
         const data = await response.json();
         
+        if (!response.ok) {
+          alert(data.error || 'Error searching for skins');
+          return;
+        }
+        
         if (data.error) {
           alert(data.error);
           return;
         }
 
-        if (showInput && data.results.length > 0) {
+        if (data.results.length > 0) {
           displaySearchResults(data.results);
-        } else if (data.results.length > 0) {
-          // Get stats for first result
-          getSkinStats(data.results[0]);
         } else {
           alert('No skins found matching your search');
         }
@@ -205,6 +193,12 @@
         });
 
         const stats = await response.json();
+        
+        // Check if response is OK
+        if (!response.ok) {
+          alert(stats.error || 'Error getting skin stats');
+          return;
+        }
         
         if (stats.error) {
           alert(stats.error);
@@ -340,19 +334,29 @@
 
     // Get random skin
     async function getRandomSkin() {
-      const response = await fetch('/api/search_skins', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ query: '' })
-      });
+      try {
+        const response = await fetch('/api/search_skins', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: '' })
+        });
 
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const randomSkin = data.results[Math.floor(Math.random() * data.results.length)];
-        document.getElementById('skinSearch').value = randomSkin;
-        getSkinStats(randomSkin);
+        const data = await response.json();
+        
+        if (!response.ok) {
+          alert('Error getting random skin');
+          return;
+        }
+        if (data.results && data.results.length > 0) {
+          const randomSkin = data.results[Math.floor(Math.random() * data.results.length)];
+          document.getElementById('skinSearch').value = randomSkin;
+          getSkinStats(randomSkin);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error getting random skin');
       }
     }
 
