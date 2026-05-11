@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount the current directory so that code changes reflect immediately
+      - .:/app
+    environment:
+      - FLASK_APP=src/app.py
+      - FLASK_ENV=development
+      - FLASK_RUN_HOST=0.0.0.0
+    # Use python-dotenv to automatically load the .env file if it exists
+    env_file:
+      - .env
